@@ -1,46 +1,51 @@
-#Coded by Yashraj Singh Chouhan
-import socket, threading                                                #Libraries import
+from threading import Thread
+from socket import AF_INET, SOCK_STREAM, socket
 
-host = '127.0.0.1'                                                      #LocalHost
-port = 8080                                                             #Choosing unreserved port
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)              #socket initialization
-server.bind((host, port))                                               #binding host and port to socket
-server.listen()
+class Server:
+    def __init__(self):
+        self.host = '127.0.0.1'
+        self.port = 8080
+        self.__start_server()
+        self.clients = []
+        self.nicknames = []
 
-clients = []
-nicknames = []
+    def __start_server(self):
+        self.server_instance = socket(AF_INET, SOCK_STREAM)
+        self.server_instance.bind((self.host, self.port))
+        self.server_instance.listen()
 
-def broadcast(message):                                                 #broadcast function declaration
-    for client in clients:
-        client.send(message)
+    def broadcast(self, message):
+        for client in self.clients:
+            client.send(message)
 
-def handle(client):                                         
-    while True:
-        try:                                                            #recieving valid messages from client
-            message = client.recv(1024)
-            broadcast(message)
-        except:                                                         #removing clients
-            index = clients.index(client)
-            clients.remove(client)
-            client.close()
-            nickname = nicknames[index]
-            broadcast('{} left!'.format(nickname).encode('ascii'))
-            nicknames.remove(nickname)
-            break
+    def handle(self, client):
+        while True:
+            try:
+                message = client.recv(1024)
+                self.broadcast(message)
+            except ConnectionError:
+                index = self.clients.index(client)
+                self.clients.remove(client)
+                client.close()
+                nickname = self.nicknames[index]
+                self.broadcast('{} left!'.format(nickname).encode('ascii'))
+                self.nicknames.remove(nickname)
+                break
 
-def receive():                                                          #accepting multiple clients
-    while True:
-        client, address = server.accept()
-        print("Connected with {}".format(str(address)))       
-        client.send('NICKNAME'.encode('ascii'))
-        nickname = client.recv(1024).decode('ascii')
-        nicknames.append(nickname)
-        clients.append(client)
-        print("Nickname is {}".format(nickname))
-        broadcast("{} joined!".format(nickname).encode('ascii'))
-        client.send('Connected to server!'.encode('ascii'))
-        thread = threading.Thread(target=handle, args=(client,))
-        thread.start()
+    def run(self):
+        while True:
+            client, address = self.server_instance.accept()
+            client.send('NICKNAME'.encode('ascii'))
+            nickname = client.recv(1024).decode('ascii')
+            self.nicknames.append(nickname)
+            self.clients.append(client)
+            self.broadcast("{} joined!".format(nickname).encode('ascii'))
+            client.send('Connected to server!'.encode('ascii'))
+            thread = Thread(target=self.handle, args=(client,))
+            thread.start()
 
-receive()
+
+if __name__ == '__main__':
+    server = Server()
+    server.run()
