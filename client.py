@@ -5,35 +5,42 @@ import threading
 class Client:
     def __init__(self):
         self.nickname = None
+        self.listening = True
         self.host = '127.0.0.1'
-        self.port = 8080
+        self.port = 3000
         self.__start_client()
+
+    def close(self):
+        self.server_instance.close()
 
     def __start_client(self):
         try:
             self.nickname = input("Choose your nickname: ")
-            self.client_instance = socket(AF_INET, SOCK_STREAM)
-            self.client_instance.connect((self.host, self.port))
+            self.server_instance = socket(AF_INET, SOCK_STREAM)
+            self.server_instance.connect((self.host, self.port))
+            self.server_instance.send(self.nickname.encode('ascii'))
         except ConnectionRefusedError:
             print('Server is not running!')
 
     def receive(self):
-        while True:
+        while self.listening:
             try:
-                message = self.client_instance.recv(1024).decode('ascii')
-                if message == 'NICKNAME':
-                    self.client_instance.send(self.nickname.encode('ascii'))
-                else:
-                    print(message)
+                message = self.server_instance.recv(1024).decode('ascii')
+                print(message)
             except ConnectionError:
                 print("An error occured!")
-                self.client_instance.close()
+                self.server_instance.close()
                 break
 
     def write(self):
-        while True:  # message layout
-            message = '{}: {}'.format(self.nickname, input(''))
-            self.client_instance.send(message.encode('ascii'))
+        while True:
+            content = input('')
+            message = '{}: {}'.format(self.nickname, content)
+            self.server_instance.send(message.encode('ascii'))
+            if content == '/quit':
+                self.server_instance.close()
+                self.listening = False
+                break
 
     def run(self):
         receive_thread = threading.Thread(target=self.receive)
