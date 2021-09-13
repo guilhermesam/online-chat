@@ -7,11 +7,14 @@ class Client:
         self.nickname = None
         self.listening = True
         self.host = '127.0.0.1'
-        self.port = 3000
+        self.port = 3333
         self.__start_client()
 
     def close(self):
         self.server_instance.close()
+
+    def list_all_users(self):
+        self.server_instance.send(f'{self.nickname}: /list'.encode('ascii'))
 
     def __start_client(self):
         try:

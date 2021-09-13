@@ -5,7 +5,7 @@ from socket import AF_INET, SOCK_STREAM, socket
 class Server:
     def __init__(self):
         self.host = '127.0.0.1'
-        self.port = 3000
+        self.port = 3333
         self.__start_server()
         self.clients = []
         self.nicknames = []
@@ -15,6 +15,9 @@ class Server:
         self.server_instance.bind((self.host, self.port))
         self.server_instance.listen()
         print(f'Server is running on {self.host}:{self.port}')
+
+    def list_all_users(self):
+        return '\n'.join(self.nicknames).encode('ascii')
 
     def broadcast(self, message):
         for client in self.clients:
@@ -36,7 +39,10 @@ class Server:
                 if content == '/quit':
                     self.quit(client)
                     break
-                self.broadcast(message)
+                elif content == '/list':
+                    self.broadcast(self.list_all_users())
+                else:
+                    self.broadcast(message)
             except ConnectionError:
                 break
 
